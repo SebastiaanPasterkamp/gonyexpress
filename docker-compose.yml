@@ -1,0 +1,43 @@
+version: '2'
+services:
+    rabbitmq:
+        image: rabbitmq:3-management
+        hostname: rabbitmq
+        ports:
+        - 15672:15672
+        - 5672:5672
+        healthcheck:
+            test: rabbitmq-diagnostics -q ping
+            interval: 30s
+            timeout: 30s
+            retries: 3
+
+    producer:
+        build:
+            context: .
+            args:
+                TARGET: producer
+        command: ["--total", "1"]
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
+
+    consumer-foo:
+        build:
+            context: .
+            args:
+                TARGET: consumer
+        command: ["--queue", "foo"]
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
+
+    consumer-bar:
+        build:
+            context: .
+            args:
+                TARGET: consumer
+        command: ["--queue", "bar"]
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
