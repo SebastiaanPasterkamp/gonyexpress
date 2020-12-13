@@ -1,0 +1,71 @@
+---
+kind: pipeline
+type: docker
+name: Test
+
+platform:
+  os: linux
+  arch: arm
+
+steps:
+  - name: unit-test
+    image: golang:1.15-alpine
+    volumes:
+      - name: apk-cache
+        path: /etc/apk/cache
+      - name: golang-cache
+        path: /root/go/pkg/mod/cache
+    commands:
+      - |-
+        apk add \
+            build-base \
+            gcc
+      - |-
+        go test \
+          -coverprofile cover.out \
+          ./...
+
+  - name: coverage
+    image: golang:1.15-alpine
+    commands:
+      - |-
+        go tool cover \
+          -func cover.out
+    depends_on:
+      - unit-test
+
+  - name: build-test
+    image: docker
+    volumes:
+      - name: socket
+        path: /var/run/docker.sock
+    when:
+      event:
+        exclude:
+        - tag
+    commands:
+      - |-
+        docker build \
+          --build-arg TARGET=consumer \
+          -t gony-express-consumer:unstable .
+      - |-
+        docker build \
+          --build-arg TARGET=producer \
+          -t gony-express-producer:unstable .
+
+volumes:
+  - name: apk-cache
+    host:
+      path: /var/cache/drone/apk
+  - name: golang-cache
+    host:
+      path: /var/cache/drone/golang
+  - name: socket
+    host:
+      path: /var/run/docker.sock
+
+---
+kind: signature
+hmac: 699136d38f67b4cc8cb8b66e7d2b349580cf42ec55c65dd2cab7300acacac61b
+
+...
