@@ -95,6 +95,11 @@ func (c *Component) worker(msgs <-chan amqp.Delivery) {
 				continue
 			}
 
+			if _, ok := msg.MetaData["ping"]; ok {
+				c.advance(d, msg, nil, nil)
+				continue
+			}
+
 			pl, md, err := c.operator(
 				msg.TraceID,
 				msg.MetaData,
