@@ -2,7 +2,7 @@ package gonyexpress
 
 import (
 	"github.com/SebastiaanPasterkamp/gonyexpress/broker"
-	"github.com/SebastiaanPasterkamp/gonyexpress/payload"
+	pl "github.com/SebastiaanPasterkamp/gonyexpress/payload"
 
 	"fmt"
 	"sync"
@@ -28,8 +28,8 @@ func NewConsumer(URI, qname string, workers int, operator Operator) Component {
 // Consumer. The returned payload is advanced to the next step on the routing
 // slip.
 type Operator func(
-	traceID string, md payload.MetaData, args payload.Arguments, docs payload.Documents,
-) (*payload.Documents, *payload.MetaData, error)
+	traceID string, md pl.MetaData, args pl.Arguments, docs pl.Documents,
+) (*pl.Documents, *pl.MetaData, error)
 
 // Run launches the Component as a background service.
 func (c *Component) Run() error {
@@ -76,7 +76,7 @@ func (c *Component) worker(msgs <-chan amqp.Delivery) {
 			return
 
 		case d := <-msgs:
-			msg, err := payload.MessageFromByteSlice(d.Body)
+			msg, err := pl.MessageFromByteSlice(d.Body)
 
 			if err != nil {
 				log.Errorf("%s - Bad message: %+v in %+v\n",
@@ -85,6 +85,7 @@ func (c *Component) worker(msgs <-chan amqp.Delivery) {
 				d.Nack(false, false)
 				continue
 			}
+
 			step, err := msg.CurrentStep()
 			if err != nil {
 				log.Errorf("%s - Bad message: %+v in %+v\n",
@@ -101,36 +102,57 @@ func (c *Component) worker(msgs <-chan amqp.Delivery) {
 				msg.Documents,
 			)
 
-			var next *payload.Message
 			if err != nil {
-				log.Errorf("%s - Failed to process message: %+v\n",
-					d.CorrelationId, err)
-				next, err = msg.Retry()
-				if err != nil {
-					log.Errorf("%s - Failed to produc retry message: %+v\n",
-						d.CorrelationId, err)
-				}
+				c.retry(d, msg, err)
 			} else {
-				next, err = msg.Advance(pl, md)
-				if err != nil {
-					log.Errorf("%s - Failed to produc next message: %+v\n",
-						d.CorrelationId, err)
-				}
+				c.advance(d, msg, pl, md)
 			}
-
-			if next != nil {
-				err = c.Broker.SendMessage(*next)
-				if err != nil {
-					log.Errorf("%s - Failed to send message: %+v\n",
-						d.CorrelationId, err)
-					d.Nack(false, false)
-					continue
-				}
-			}
-
-			d.Ack(false)
 		}
 	}
+}
+
+// advance will send the message to the next step on the route
+func (c *Component) advance(d amqp.Delivery, msg *pl.Message, docs *pl.Documents, md *pl.MetaData) {
+	next, err := msg.Advance(docs, md)
+	if err != nil {
+		log.Errorf("%s - Failed to produce next message: %+v\n", d.CorrelationId, err)
+		d.Nack(false, false)
+		return
+	}
+
+	if next == nil {
+		d.Ack(false)
+		return
+	}
+
+	err = c.SendMessage(*next)
+	if err != nil {
+		log.Errorf("%s - Failed to send message: %+v\n", d.CorrelationId, err)
+		d.Nack(false, true)
+	}
+	d.Ack(false)
+}
+
+// retry will send the message back to retry another time, if configured
+func (c *Component) retry(d amqp.Delivery, msg *pl.Message, e error) {
+	next, err := msg.Retry(e)
+	if err != nil {
+		log.Errorf("%s - Failed to produc retry message: %+v\n",
+			d.CorrelationId, err)
+	}
+
+	if next == nil {
+		d.Ack(false)
+		return
+	}
+
+	err = c.SendMessage(*next)
+	if err != nil {
+		log.Errorf("%s - Failed to send message: %+v\n", d.CorrelationId, err)
+		d.Nack(false, true)
+		return
+	}
+	d.Ack(false)
 }
 
 // Shutdown will notify all workers to stop, and wait for all to finish.

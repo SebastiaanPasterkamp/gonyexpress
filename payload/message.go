@@ -28,6 +28,7 @@ type Step struct {
 	Queue         string `json:"queue"`
 	Arguments     `json:"arguments,omitempty"`
 	ErrorHandling `json:"on_error,omitempty"`
+	Log           []string `json:"log,omitempty"`
 }
 
 // Arguments is a set of key-value pairs containing arguments specific to a Step
@@ -128,7 +129,7 @@ func (msg Message) Advance(pl *Documents, md *MetaData) (*Message, error) {
 // Retry creates a new Message based on the current message, but with updated
 // attempt count, and possibly a partially reset Position. Returns nil if the
 // number of retries has been exhausted.
-func (msg Message) Retry() (*Message, error) {
+func (msg Message) Retry(e error) (*Message, error) {
 	step, err := msg.CurrentStep()
 	if err != nil {
 		return nil, err
@@ -153,6 +154,7 @@ func (msg Message) Retry() (*Message, error) {
 		msg.Routing.Position-step.Rewind+1, len(msg.Routing.Slip))
 
 	step.Attempt++
+	step.Log = append(step.Log, e.Error())
 
 	return &Message{
 		Routing: Routing{
