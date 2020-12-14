@@ -101,6 +101,50 @@ func TestConsumer(t *testing.T) {
 	c.Shutdown()
 }
 
+func TestConsumerPing(t *testing.T) {
+	operator := func(
+		_ string, _ payload.MetaData, _ payload.Arguments, _ payload.Documents,
+	) (*payload.Documents, *payload.MetaData, error) {
+		t.Fatal("Not expected to be called")
+		return nil, nil, nil
+	}
+
+	c := ge.NewConsumer("mock://", "test", 1, operator)
+	m := c.Broker.(broker.MockBroker)
+
+	if err := c.Run(); err != nil {
+		t.Errorf("Unexpected error: %+v", err)
+	}
+
+	orig := payload.NewMessage(
+		payload.Routing{
+			Name: "test-consumer",
+			Slip: []payload.Step{
+				{Queue: "foo"},
+				{Queue: "bar"},
+			},
+		},
+		payload.MetaData{"ping": true},
+		payload.Documents{},
+	)
+
+	m.DeliverMessage(orig)
+
+	msg, err := m.TakeMessage(1 * time.Second)
+	if err != nil {
+		t.Errorf("Unexpected error: %+v", err)
+	}
+	if msg == nil {
+		t.Errorf("Expected a message, got nil")
+	} else {
+		if msg.TraceID != orig.TraceID {
+			t.Errorf("TraceID changed. Have %q, want %q.", msg.TraceID, orig.TraceID)
+		}
+	}
+
+	c.Shutdown()
+}
+
 func TestBadInit(t *testing.T) {
 	operator := func(
 		traceID string, md payload.MetaData, args payload.Arguments, docs payload.Documents,
