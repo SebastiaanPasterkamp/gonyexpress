@@ -1,6 +1,7 @@
 package payload_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/SebastiaanPasterkamp/gonyexpress/payload"
@@ -339,9 +340,10 @@ func TestRetry(t *testing.T) {
 			"doc": payload.NewDocument("test", "text/plain", ""),
 		},
 	)
+	e := fmt.Errorf("example")
 
 	// retry not configured
-	retry, err := msg.Retry()
+	retry, err := msg.Retry(e)
 	if err != nil {
 		t.Errorf("Unexpected error: %+v", err)
 	}
@@ -352,7 +354,7 @@ func TestRetry(t *testing.T) {
 	// retry configured, but invalid rewind
 	msg.Routing.Slip[1].MaxRetries = 3
 	msg.Routing.Slip[1].Rewind = 2
-	retry, err = msg.Retry()
+	retry, err = msg.Retry(e)
 	if err != nil {
 		t.Errorf("Unexpected error: %+v", err)
 	}
@@ -363,7 +365,7 @@ func TestRetry(t *testing.T) {
 	// maxed out attempts
 	msg.Routing.Slip[1].MaxRetries = 3
 	msg.Routing.Slip[1].Attempt = 3
-	retry, err = msg.Retry()
+	retry, err = msg.Retry(e)
 	if err != nil {
 		t.Errorf("Unexpected error: %+v", err)
 	}
@@ -374,7 +376,7 @@ func TestRetry(t *testing.T) {
 	// valid settings
 	msg.Routing.Slip[1].Attempt = 0
 	msg.Routing.Slip[1].Rewind = 1
-	retry, err = msg.Retry()
+	retry, err = msg.Retry(e)
 	if err != nil {
 		t.Errorf("Unexpected error: %+v", err)
 	}
@@ -388,6 +390,11 @@ func TestRetry(t *testing.T) {
 		if retry.Routing.Position != 0 {
 			t.Errorf("Expected position rewind. Have %d, want %d.",
 				retry.Routing.Position, 0)
+		}
+
+		if retry.Routing.Slip[1].Log[0] != "example" {
+			t.Errorf("Expected error to be logged. Have %+v, want %+v.",
+				retry.Routing.Slip[1].Log, []string{"example"})
 		}
 
 		d, ok := retry.Documents["doc"]
