@@ -46,7 +46,7 @@ func TestConsumer(t *testing.T) {
 	}
 
 	c := ge.NewConsumer("mock://", "test", 1, operator)
-	m := c.Broker.(broker.MockBroker)
+	m := c.Broker.(*broker.MockBroker)
 
 	if err := c.Run(); err != nil {
 		t.Errorf("Unexpected error: %+v", err)
@@ -110,7 +110,7 @@ func TestConsumerPing(t *testing.T) {
 	}
 
 	c := ge.NewConsumer("mock://", "test", 1, operator)
-	m := c.Broker.(broker.MockBroker)
+	m := c.Broker.(*broker.MockBroker)
 
 	if err := c.Run(); err != nil {
 		t.Errorf("Unexpected error: %+v", err)
@@ -184,7 +184,7 @@ func TestConsumerFailure(t *testing.T) {
 	}
 
 	c := ge.NewConsumer("mock://", "test", 1, operator)
-	m := c.Broker.(broker.MockBroker)
+	m := c.Broker.(*broker.MockBroker)
 
 	if err := c.Run(); err != nil {
 		t.Errorf("Unexpected error: %+v", err)

@@ -26,8 +26,8 @@ type RabbitMQ struct {
 }
 
 // NewRabbitMQ creates a RabbitMQ instance ready to connect.
-func NewRabbitMQ(URI, qname string) RabbitMQ {
-	return RabbitMQ{
+func NewRabbitMQ(URI, qname string) *RabbitMQ {
+	return &RabbitMQ{
 		URI:   URI,
 		qname: qname,
 	}
@@ -35,7 +35,7 @@ func NewRabbitMQ(URI, qname string) RabbitMQ {
 
 // Connect opens up a RabbitMQ connection and returns a channel through which
 // Messages are delivered.
-func (r RabbitMQ) Connect() (<-chan amqp.Delivery, error) {
+func (r *RabbitMQ) Connect() (<-chan amqp.Delivery, error) {
 	var err error
 	r.conn, err = amqp.Dial(r.URI)
 	if err != nil {
@@ -90,7 +90,7 @@ func (r RabbitMQ) Connect() (<-chan amqp.Delivery, error) {
 // Close terminates the RabbitMQ channel and connection. Should be used when
 // running a Producer, after Connect is called. Automatically called after
 // Shutdown for a running Consumer.
-func (r RabbitMQ) Close() {
+func (r *RabbitMQ) Close() {
 	if r.ch != nil {
 		r.ch.Close()
 		r.ch = nil
@@ -102,7 +102,7 @@ func (r RabbitMQ) Close() {
 }
 
 // SendMessage sends a message onto the message's current Slip queue
-func (r RabbitMQ) SendMessage(msg payload.Message) error {
+func (r *RabbitMQ) SendMessage(msg payload.Message) error {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return err
