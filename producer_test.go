@@ -23,7 +23,7 @@ func TestNewProducerConnectCloseWithError(t *testing.T) {
 
 func TestProducer(t *testing.T) {
 	p := ge.NewProducer("mock://", "test")
-	m := p.Broker.(broker.MockBroker)
+	m := p.Broker.(*broker.MockBroker)
 
 	if _, err := p.Connect(); err != nil {
 		t.Errorf("Unexpected error: %+v", err)
