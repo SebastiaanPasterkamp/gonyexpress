@@ -1,6 +1,6 @@
 # Gony Express
 
-The `gonyexpress` is a Proof of Concept package to quickly create `golang` AMPQ
+The `gonyexpress` is a Proof of Concept package to quickly create `golang` AMQP
 enabled Components. This package implements the "Routing Slip Pattern", and does
 all the heavy lifting, from:
 
