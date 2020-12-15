@@ -136,7 +136,7 @@ func (msg Message) Retry(e error) (*Message, error) {
 	}
 
 	if step.Attempt >= step.MaxRetries {
-		log.Printf("At attempt %d / %d. Giving up...", step.Attempt+1, step.MaxRetries)
+		log.Printf("At attempt %d / %d. Giving up...", step.Attempt+1, step.MaxRetries+1)
 		return nil, nil
 	}
 
