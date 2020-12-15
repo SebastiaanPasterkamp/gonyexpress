@@ -35,7 +35,7 @@ func NewRabbitMQ(URI, qname string) *RabbitMQ {
 
 // Connect opens up a RabbitMQ connection and returns a channel through which
 // Messages are delivered.
-func (r *RabbitMQ) Connect() (<-chan amqp.Delivery, error) {
+func (r *RabbitMQ) Connect(prefetch int) (<-chan amqp.Delivery, error) {
 	var err error
 	r.conn, err = amqp.Dial(r.URI)
 	if err != nil {
@@ -48,9 +48,9 @@ func (r *RabbitMQ) Connect() (<-chan amqp.Delivery, error) {
 	}
 
 	err = r.ch.Qos(
-		1,     // prefetch count
-		0,     // prefetch size
-		false, // global
+		prefetch, // prefetch count
+		0,        // prefetch size
+		false,    // global
 	)
 	if err != nil {
 		return nil, err

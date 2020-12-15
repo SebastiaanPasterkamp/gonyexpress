@@ -11,7 +11,7 @@ import (
 // Broker is an interface defining the bare functionality of a RabbitMQ
 // connection.
 type Broker interface {
-	Connect() (<-chan amqp.Delivery, error)
+	Connect(prefetch int) (<-chan amqp.Delivery, error)
 	Close()
 	SendMessage(msg payload.Message) error
 }
