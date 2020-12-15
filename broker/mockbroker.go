@@ -26,7 +26,7 @@ func NewMockBroker() *MockBroker {
 
 // Connect only serves to complete the Broker interface. It returns the mock
 // message channel
-func (m *MockBroker) Connect() (<-chan amqp.Delivery, error) {
+func (m *MockBroker) Connect(_ int) (<-chan amqp.Delivery, error) {
 	return m.inc, nil
 }
 

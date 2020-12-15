@@ -26,7 +26,7 @@ type Component struct {
 // Connect opens up a RabbitMQ connection and returns a channel through which
 // Messages are delivered.
 func (c *Component) Connect() (<-chan amqp.Delivery, error) {
-	return c.Broker.Connect()
+	return c.Broker.Connect(c.workers * 2)
 }
 
 // Close terminates the RabbitMQ channel and connection. Should be used when
