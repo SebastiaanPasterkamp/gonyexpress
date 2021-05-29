@@ -1,6 +1,6 @@
 ---
 kind: pipeline
-type: docker
+type: kubernetes
 name: Test
 
 platform:
@@ -9,63 +9,111 @@ platform:
 
 steps:
   - name: unit-test
-    image: golang:1.15-alpine
-    volumes:
-      - name: apk-cache
-        path: /etc/apk/cache
-      - name: golang-cache
-        path: /root/go/pkg/mod/cache
+    image: golang:1.15-stretch
     commands:
-      - |-
-        apk add \
-            build-base \
-            gcc
-      - |-
-        go test \
-          -coverprofile cover.out \
-          ./...
+      - apt-get update
+      - apt-get install -y git build-essential
+      - go test -coverprofile cover.out ./...
+    resources:
+      limits:
+        cpu: 1000
+        memory: 500MiB
 
   - name: coverage
-    image: golang:1.15-alpine
+    image: golang:1.15-stretch
     commands:
-      - |-
-        go tool cover \
-          -func cover.out
+      - go tool cover -func cover.out
     depends_on:
       - unit-test
 
-  - name: build-test
-    image: docker
-    volumes:
-      - name: socket
-        path: /var/run/docker.sock
-    when:
-      event:
-        exclude:
-        - tag
-    commands:
-      - |-
-        docker build \
-          --build-arg TARGET=consumer \
-          -t gony-express-consumer:unstable .
-      - |-
-        docker build \
-          --build-arg TARGET=producer \
-          -t gony-express-producer:unstable .
+---
+kind: pipeline
+type: kubernetes
+name: Image Staging
 
-volumes:
-  - name: apk-cache
-    host:
-      path: /var/cache/drone/apk
-  - name: golang-cache
-    host:
-      path: /var/cache/drone/golang
-  - name: socket
-    host:
-      path: /var/run/docker.sock
+depends_on:
+- Test
+
+platform:
+  os: linux
+  arch: arm
+
+steps:
+  - name: build-test-consumer
+    image: docker-registry.pikube.dev:31443/drone-genuinetools-img
+    settings:
+      registry: docker-registry-service.docker-registry:5000
+      repo: gonyexpress-consumer
+      build_args: TARGET=consumer
+      tags: ${DRONE_BRANCH},unstable
+      cache: true
+      insecure_registry: true
+    resources:
+      limits:
+        cpu: 1000
+        memory: 500MiB
+
+  - name: build-test-producer
+    image: docker-registry.pikube.dev:31443/drone-genuinetools-img
+    settings:
+      registry: docker-registry-service.docker-registry:5000
+      repo: gonyexpress-producer
+      build_args: TARGET=producer
+      tags: ${DRONE_BRANCH},unstable
+      cache: true
+      insecure_registry: true
+    resources:
+      limits:
+        cpu: 1000
+        memory: 500MiB
+
+---
+kind: pipeline
+type: kubernetes
+name: Image Production
+
+trigger:
+  event:
+    - tag
+
+depends_on:
+- Image Staging
+
+platform:
+  os: linux
+  arch: arm
+
+steps:
+  - name: build-production-consumer
+    image: docker-registry.pikube.dev:31443/drone-genuinetools-img
+    settings:
+      registry: docker-registry-service.docker-registry:5000
+      repo: gonyexpress-consumer
+      build_args: TARGET=consumer
+      auto_tag: true
+      cache: true
+      insecure_registry: true
+    resources:
+      limits:
+        cpu: 1000
+        memory: 500MiB
+
+  - name: build-production-producer
+    image: docker-registry.pikube.dev:31443/drone-genuinetools-img
+    settings:
+      registry: docker-registry-service.docker-registry:5000
+      repo: gonyexpress-consumer
+      build_args: TARGET=producer
+      auto_tag: true
+      cache: true
+      insecure_registry: true
+    resources:
+      limits:
+        cpu: 1000
+        memory: 500MiB
 
 ---
 kind: signature
-hmac: 699136d38f67b4cc8cb8b66e7d2b349580cf42ec55c65dd2cab7300acacac61b
+hmac: 280938c5f4b3a91ca3e4644743ffa12ea40db3532753051eda06c313b3f9948c
 
 ...
