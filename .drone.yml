@@ -8,7 +8,7 @@ platform:
   arch: arm
 
 steps:
-  - name: unit-test
+  - name: unit test
     image: golang:1.15-stretch
     commands:
       - apt-get update
@@ -24,7 +24,7 @@ steps:
     commands:
       - go tool cover -func cover.out
     depends_on:
-      - unit-test
+      - unit test
 
 ---
 kind: pipeline
@@ -39,7 +39,23 @@ platform:
   arch: arm
 
 steps:
-  - name: build-test-consumer
+  - name: prepare cache
+    image: docker-registry.pikube.dev:31443/drone-genuinetools-img
+    settings:
+      registry: docker-registry-service.docker-registry:5000
+      repo: gonyexpress
+      target: builder
+      build_args: TARGET=consumer
+      tags: cache
+      cache: true
+      cache_image: docker-registry-service.docker-registry:5000/gonyexpress:cache
+      insecure_registry: true
+    resources:
+      limits:
+        cpu: 1000
+        memory: 500MiB
+
+  - name: build consumer staging
     image: docker-registry.pikube.dev:31443/drone-genuinetools-img
     settings:
       registry: docker-registry-service.docker-registry:5000
@@ -47,13 +63,16 @@ steps:
       build_args: TARGET=consumer
       tags: ${DRONE_BRANCH},unstable
       cache: true
+      cache_image: docker-registry-service.docker-registry:5000/gonyexpress:cache
       insecure_registry: true
     resources:
       limits:
         cpu: 1000
         memory: 500MiB
+    depends_on:
+      - prepare cache
 
-  - name: build-test-producer
+  - name: build producer staging
     image: docker-registry.pikube.dev:31443/drone-genuinetools-img
     settings:
       registry: docker-registry-service.docker-registry:5000
@@ -61,11 +80,14 @@ steps:
       build_args: TARGET=producer
       tags: ${DRONE_BRANCH},unstable
       cache: true
+      cache_image: docker-registry-service.docker-registry:5000/gonyexpress:cache
       insecure_registry: true
     resources:
       limits:
         cpu: 1000
         memory: 500MiB
+    depends_on:
+      - prepare cache
 
 ---
 kind: pipeline
@@ -84,7 +106,7 @@ platform:
   arch: arm
 
 steps:
-  - name: build-production-consumer
+  - name: build consumer production
     image: docker-registry.pikube.dev:31443/drone-genuinetools-img
     settings:
       registry: docker-registry-service.docker-registry:5000
@@ -92,13 +114,14 @@ steps:
       build_args: TARGET=consumer
       auto_tag: true
       cache: true
+      cache_image: docker-registry-service.docker-registry:5000/gonyexpress:cache
       insecure_registry: true
     resources:
       limits:
         cpu: 1000
         memory: 500MiB
 
-  - name: build-production-producer
+  - name: build producer production
     image: docker-registry.pikube.dev:31443/drone-genuinetools-img
     settings:
       registry: docker-registry-service.docker-registry:5000
@@ -106,6 +129,7 @@ steps:
       build_args: TARGET=producer
       auto_tag: true
       cache: true
+      cache_image: docker-registry-service.docker-registry:5000/gonyexpress:cache
       insecure_registry: true
     resources:
       limits:
@@ -114,6 +138,6 @@ steps:
 
 ---
 kind: signature
-hmac: 280938c5f4b3a91ca3e4644743ffa12ea40db3532753051eda06c313b3f9948c
+hmac: 0cc8b98a508a256f8779996ece80284f23e5ffa042f7b5d5f552d04737ba310c
 
 ...
