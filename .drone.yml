@@ -39,22 +39,6 @@ platform:
   arch: arm
 
 steps:
-  - name: prepare cache
-    image: docker-registry.pikube.dev:31443/drone-genuinetools-img
-    settings:
-      registry: docker-registry-service.docker-registry:5000
-      repo: gonyexpress
-      target: builder
-      build_args: TARGET=consumer
-      tags: cache
-      cache: true
-      cache_image: docker-registry-service.docker-registry:5000/gonyexpress:cache
-      insecure_registry: true
-    resources:
-      limits:
-        cpu: 1000
-        memory: 300MiB
-
   - name: build consumer staging
     image: docker-registry.pikube.dev:31443/drone-genuinetools-img
     settings:
@@ -62,15 +46,11 @@ steps:
       repo: gonyexpress-consumer
       build_args: TARGET=consumer
       tags: ${DRONE_BRANCH},unstable
-      cache: true
-      cache_image: docker-registry-service.docker-registry:5000/gonyexpress:cache
       insecure_registry: true
     resources:
       limits:
         cpu: 1000
         memory: 300MiB
-    depends_on:
-      - prepare cache
 
   - name: build producer staging
     image: docker-registry.pikube.dev:31443/drone-genuinetools-img
@@ -79,15 +59,11 @@ steps:
       repo: gonyexpress-producer
       build_args: TARGET=producer
       tags: ${DRONE_BRANCH},unstable
-      cache: true
-      cache_image: docker-registry-service.docker-registry:5000/gonyexpress:cache
       insecure_registry: true
     resources:
       limits:
         cpu: 1000
         memory: 300MiB
-    depends_on:
-      - prepare cache
 
 ---
 kind: pipeline
@@ -113,8 +89,6 @@ steps:
       repo: gonyexpress-consumer
       build_args: TARGET=consumer
       auto_tag: true
-      cache: true
-      cache_image: docker-registry-service.docker-registry:5000/gonyexpress:cache
       insecure_registry: true
     resources:
       limits:
@@ -128,8 +102,6 @@ steps:
       repo: gonyexpress-consumer
       build_args: TARGET=producer
       auto_tag: true
-      cache: true
-      cache_image: docker-registry-service.docker-registry:5000/gonyexpress:cache
       insecure_registry: true
     resources:
       limits:
@@ -138,6 +110,6 @@ steps:
 
 ---
 kind: signature
-hmac: bc5942fd2d5aff0e64783beab54baa215df325e8dedc6ab3f414c1352d02076c
+hmac: 02f4a77a025cfbf65ef2a059da1ca7e7ffacba0d7f18ebd17b53288aebe3fdbf
 
 ...
