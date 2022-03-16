@@ -1,5 +1,5 @@
 # See https://medium.com/@chemidy/create-the-smallest-and-secured-golang-docker-image-based-on-scratch-4752223b7324
-FROM golang:1.17-stretch AS builder
+FROM golang:1.18-stretch AS builder
 
 # Git is used for dependencies
 RUN apt-get update \
