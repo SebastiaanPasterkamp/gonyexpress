@@ -9,7 +9,7 @@ platform:
 
 steps:
   - name: unit test
-    image: golang:1.17-stretch
+    image: golang:1.18-stretch
     commands:
       - apt-get update
       - apt-get install -y git build-essential
@@ -20,7 +20,7 @@ steps:
         memory: 200MiB
 
   - name: coverage
-    image: golang:1.17-stretch
+    image: golang:1.18-stretch
     commands:
       - go tool cover -func cover.out
     depends_on:
